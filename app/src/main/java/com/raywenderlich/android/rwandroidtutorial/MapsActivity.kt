@@ -37,6 +37,7 @@ package com.raywenderlich.android.runtracking
 
 import android.Manifest
 import android.Manifest.permission.ACCESS_FINE_LOCATION
+import android.R.attr.data
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
@@ -59,8 +60,7 @@ import com.google.android.gms.maps.model.PolylineOptions
 import com.raywenderlich.android.runtracking.databinding.ActivityMainBinding
 import com.vmadalin.easypermissions.EasyPermissions
 import com.vmadalin.easypermissions.annotations.AfterPermissionGranted
-import java.io.File
-import java.io.FileOutputStream
+
 
 /**
  * Main Screen
@@ -139,19 +139,18 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     val cur = Location("cur")
     prev.latitude = prevLat
     prev.longitude = prevLong
-    cur.latitude = 40.443587
-    cur.longitude = -79.945558
+    cur.latitude = 40.44476296170437
+    cur.longitude = -79.94615793228151
     distancetoend = prev.distanceTo(cur).toDouble()
-    if (distancetoend < 100){
+    if (distancetoend < 200){
       AlertDialog.Builder(this)
               .setTitle("You have reached your destination!")
               .setPositiveButton("Confirm") { _, _ ->
                 isTracking = false
                 updateButtonStatus()
                 stopTracking()
-//                File("records.txt").printWriter().use {out->
-//                    out.println("asdf")
-//                }
+                Log.d("TAG", "LatLngString: $LatLngString")
+
               }.setNegativeButton("Cancel") { _, _ ->
               }
               .create()
@@ -224,7 +223,6 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   @SuppressLint("MissingPermission")
   override fun onMapReady(googleMap: GoogleMap) {
     mMap = googleMap
-
     showUserLocation()
 
 
@@ -304,10 +302,22 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
       )
     }
   }
+  fun convertToPolyLineOptions(cordList: MutableList<Double>) : PolylineOptions{
+    var polylineO = PolylineOptions()
+    for (i in cordList.indices step 2){
+      val originalLatLngList = polylineO.points
+      var latLng = LatLng(cordList[i],cordList[i + 1])
+      originalLatLngList.add(latLng)
+      Log.d("TAG", "Save MEEEEEEEEEEEE")
+    }
+    mMap.addPolyline(polylineO)
+    return polylineO
+  }
   var polylineOptions = PolylineOptions()
-  var prevLat = 40.443647
-  var prevLong = -79.944855
+  var prevLat = 40.443370
+  var prevLong = -79.944730
   var distance = 0.0
+  val LatLngString: MutableList<Double> = mutableListOf(40.443370,-79.944730)
   fun addLocationToRoute(locations: List<Location>) {
     mMap.clear()
     val originalLatLngList = polylineOptions.points
@@ -318,6 +328,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     mMap.addPolyline(polylineOptions)
     val prevLocation = Location("previous")
     locations.forEach{
+      LatLngString.add(it.latitude)
+      LatLngString.add(it.longitude)
       val prev = Location("prev")
       val cur = Location("cur")
       prev.latitude = prevLat
@@ -331,6 +343,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
       updateAllDisplayText(0, distance.toFloat())
     }
   }
+
 
 
 

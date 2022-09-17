@@ -34,13 +34,12 @@
 
 package com.raywenderlich.android.runtracking
 
+
 import android.Manifest
 import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
-import android.hardware.Sensor
-import android.hardware.SensorManager
 import android.location.Location
 import android.os.Build
 import android.os.Bundle
@@ -52,7 +51,6 @@ import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
-import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
@@ -61,6 +59,8 @@ import com.google.android.gms.maps.model.PolylineOptions
 import com.raywenderlich.android.runtracking.databinding.ActivityMainBinding
 import com.vmadalin.easypermissions.EasyPermissions
 import com.vmadalin.easypermissions.annotations.AfterPermissionGranted
+import java.io.File
+import java.io.FileOutputStream
 
 /**
  * Main Screen
@@ -112,13 +112,9 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
       // Reset the display text
       updateAllDisplayText(0, 0f)
-
       startTracking()
     }
     binding.endButton.setOnClickListener { endButtonClicked() }
-
-    // Update layouts
-    updateButtonStatus()
 
     if (isTracking) {
       startTracking()
@@ -138,16 +134,38 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   }
 
   private fun endButtonClicked() {
-    AlertDialog.Builder(this)
-        .setTitle("Are you sure to stop tracking?")
-        .setPositiveButton("Confirm") { _, _ ->
-          isTracking = false
-          updateButtonStatus()
-          stopTracking()
-        }.setNegativeButton("Cancel") { _, _ ->
-        }
-        .create()
-        .show()
+    var distancetoend = 0.0
+    val prev = Location("prev")
+    val cur = Location("cur")
+    prev.latitude = prevLat
+    prev.longitude = prevLong
+    cur.latitude = 40.443587
+    cur.longitude = -79.945558
+    distancetoend = prev.distanceTo(cur).toDouble()
+    if (distancetoend < 100){
+      AlertDialog.Builder(this)
+              .setTitle("You have reached your destination!")
+              .setPositiveButton("Confirm") { _, _ ->
+                isTracking = false
+                updateButtonStatus()
+                stopTracking()
+//                File("records.txt").printWriter().use {out->
+//                    out.println("asdf")
+//                }
+              }.setNegativeButton("Cancel") { _, _ ->
+              }
+              .create()
+              .show()
+
+    }else{
+      AlertDialog.Builder(this)
+              .setTitle("You still have $distancetoend meters to go!")
+              .setPositiveButton("Confirm") { _, _ ->
+              }
+              .create()
+              .show()
+    }
+
   }
 
   // Tracking
@@ -187,7 +205,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   }
 
   private fun stopTracking() {
-    
+    // 1
+    polylineOptions = PolylineOptions()
+    fusedLocationProviderClient.removeLocationUpdates(locationCallback)
+    // 4
   }
 
   // Map related codes
@@ -203,6 +224,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   @SuppressLint("MissingPermission")
   override fun onMapReady(googleMap: GoogleMap) {
     mMap = googleMap
+
     showUserLocation()
 
 
@@ -283,8 +305,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
   }
   var polylineOptions = PolylineOptions()
-  var prevLat = 0.0
-  var prevLong = 0.0
+  var prevLat = 40.443647
+  var prevLong = -79.944855
   var distance = 0.0
   fun addLocationToRoute(locations: List<Location>) {
     mMap.clear()

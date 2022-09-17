@@ -34,29 +34,11 @@
   </LinearLayout>
 
   <TextView
-      android:id="@+id/numberOfStepTextView"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:layout_marginTop="16dp"
-      android:paddingStart="16dp"
-      android:text="Number of step: "
-      android:textSize="16sp"
-      android:textStyle="bold" />
-  <TextView
       android:id="@+id/totalDistanceTextView"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:paddingStart="16dp"
       android:text="Total distance: "
-      android:textSize="16sp"
-      android:textStyle="bold" />
-  <TextView
-      android:id="@+id/averagePaceTextView"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:paddingStart="16dp"
-      android:text="Average pace: "
-      android:layout_marginBottom="16dp"
       android:textSize="16sp"
       android:textStyle="bold" />
 

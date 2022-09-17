@@ -134,11 +134,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   }
 
   private fun updateAllDisplayText(stepCount: Int, totalDistanceTravelled: Float) {
-    binding.numberOfStepTextView.text =  String.format("Step count: %d", stepCount)
     binding.totalDistanceTextView.text = String.format("Total distance: %.2fm", totalDistanceTravelled)
-
-    val averagePace = if (stepCount != 0) totalDistanceTravelled / stepCount.toDouble() else 0.0
-    binding.averagePaceTextView.text = String.format("Average pace: %.2fm/ step", averagePace)
   }
 
   private fun endButtonClicked() {
@@ -310,6 +306,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
       prevLat = cur.latitude
       prevLong = cur.longitude
 
+      updateAllDisplayText(0, distance.toFloat())
     }
   }
 

@@ -14,7 +14,7 @@ android {
 
   defaultConfig {
     applicationId "com.raywenderlich.android.runtracking"
-    minSdkVersion rootProject.ext.minSdkVersion
+    minSdkVersion 28
     targetSdkVersion rootProject.ext.targetSdkVersion
     versionCode 1
     versionName "1.0"
@@ -49,6 +49,8 @@ dependencies {
   androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
 
   // TUTORIAL DEPENDENCIES HERE
+  implementation 'com.vmadalin:easypermissions-ktx:1.0.0'
+  implementation 'com.google.android.gms:play-services-location:17.0.0'
 
   // Google Map SDK
   implementation 'com.google.android.gms:play-services-maps:17.0.1'

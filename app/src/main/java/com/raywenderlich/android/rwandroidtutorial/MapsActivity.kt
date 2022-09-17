@@ -35,27 +35,39 @@
 package com.raywenderlich.android.runtracking
 
 import android.Manifest
+import android.Manifest.permission.ACCESS_FINE_LOCATION
 import android.annotation.SuppressLint
 import android.content.Context
+import android.content.pm.PackageManager
 import android.hardware.Sensor
 import android.hardware.SensorManager
+import android.location.Location
 import android.os.Build
 import android.os.Bundle
+import android.os.Looper
 import android.util.Log
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
+import com.google.android.gms.maps.model.PolylineOptions
 import com.raywenderlich.android.runtracking.databinding.ActivityMainBinding
+import com.vmadalin.easypermissions.EasyPermissions
+import com.vmadalin.easypermissions.annotations.AfterPermissionGranted
 
 /**
  * Main Screen
  */
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   private lateinit var binding: ActivityMainBinding
+  lateinit var fusedLocationProviderClient: com.google.android.gms.location.FusedLocationProviderClient
 
   // Location & Map
   private lateinit var mMap: GoogleMap
@@ -76,6 +88,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     // Switch to AppTheme for displaying the activity
+    fusedLocationProviderClient = com.google.android.gms.location.LocationServices.getFusedLocationProviderClient(this)
+
     setTheme(R.style.AppTheme)
     super.onCreate(savedInstanceState)
     binding = ActivityMainBinding.inflate(layoutInflater)
@@ -111,6 +125,8 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
     }
   }
 
+
+
   // UI related codes
   private fun updateButtonStatus() {
     binding.startButton.isEnabled = !isTracking
@@ -142,6 +158,36 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   @SuppressLint("CheckResult")
   private fun startTracking() {
 
+// ACTIVITY_RECOGNITION is not a necessary permission for Android with version below Q.
+    val isActivityRecognitionPermissionFree = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
+    val version = Build.VERSION.SDK_INT
+    val isActivityRecognitionPermissionGranted = com.vmadalin.easypermissions.EasyPermissions.hasPermissions(this,
+            android.Manifest.permission_group.ACTIVITY_RECOGNITION)
+    Log.d("TAG", "Is ACTIVITY_RECOGNITION permission granted $isActivityRecognitionPermissionGranted")
+    Log.d("TAG", "Is ACTIVITY_RECOGNITION permission free $version")
+    setupLocationChangeListener()
+    if (isActivityRecognitionPermissionFree || isActivityRecognitionPermissionGranted) {
+      // Action to be triggered after permission is granted
+      if (isActivityRecognitionPermissionFree || isActivityRecognitionPermissionGranted) {
+        // Action to be triggered after permission is granted
+        setupLocationChangeListener()
+      } else {
+        // Do not have permissions, request them now
+      }
+    } else {
+      // Do not have permissions, request them now
+      Log.d("TAG", "ASK FOR PERMISSION!!!!!!")
+//      ActivityCompat.requestPermissions(this,
+//              arrayOf(Manifest.permission.ACTIVITY_RECOGNITION),
+//              MY_PERMISSIONS_ACTIVITY_RECOGNITION);
+      EasyPermissions.requestPermissions(
+              host = this,
+              rationale = "For showing your step counts and calculate the average pace.",
+              requestCode = REQUEST_CODE_ACTIVITY_RECOGNITION,
+              perms = *arrayOf(android.Manifest.permission_group.ACTIVITY_RECOGNITION)
+      )
+    }
+
   }
 
   private fun stopTracking() {
@@ -161,14 +207,112 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
   @SuppressLint("MissingPermission")
   override fun onMapReady(googleMap: GoogleMap) {
     mMap = googleMap
+    showUserLocation()
 
-    // Add a marker in Hong Kong and move the camera
-    val latitude = 22.3193
-    val longitude = 114.1694
-    val hongKongLatLong = LatLng(latitude, longitude)
 
-    val zoomLevel = 9.5f
-    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(hongKongLatLong, zoomLevel))
   }
+  @AfterPermissionGranted(REQUEST_CODE_FINE_LOCATION)
+  private fun showUserLocation() {
+    if (EasyPermissions.hasPermissions(this, ACCESS_FINE_LOCATION)) {
+      if (ActivityCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        // TODO: Consider calling
+        //    ActivityCompat#requestPermissions
+        // here to request the missing permissions, and then overriding
+        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+        //                                          int[] grantResults)
+        // to handle the case where the user grants the permission. See the documentation
+        // for ActivityCompat#requestPermissions for more details.
+        return
+      }
+      mMap.isMyLocationEnabled = true
+    } else {
+      // Do not have permissions, request them now
+      EasyPermissions.requestPermissions(
+              host = this,
+              rationale = "For showing your current location on the map.",
+              requestCode = REQUEST_CODE_FINE_LOCATION,
+              perms = *arrayOf(ACCESS_FINE_LOCATION)
+      )
+    }
+  }
+//  override fun onMapReady(googleMap: GoogleMap) {
+//    mMap = googleMap
+//
+//    // Add a marker in Hong Kong and move the camera
+//    val latitude = 40.448500
+//    val longitude = -79.946930
+//    val hongKongLatLong = LatLng(latitude, longitude)
+//
+//    val zoomLevel = 9.5f
+//    mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(hongKongLatLong, zoomLevel))
+//  }
+  val locationCallback = object: LocationCallback() {
+    override fun onLocationResult(locationResult: LocationResult?) {
+      if (locationResult != null) {
+        addLocationToRoute(locationResult.locations)
+      }
+      super.onLocationResult(locationResult)
+      locationResult ?: return
+      locationResult.locations.forEach {
+        Log.d("TAG", "New location got: (${it.latitude}, ${it.longitude})")
+      }
+    }
+  }
+  @AfterPermissionGranted(REQUEST_CODE_FINE_LOCATION)
+  private fun setupLocationChangeListener() {
+    Log.d("TAG", "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    if (EasyPermissions.hasPermissions(this, ACCESS_FINE_LOCATION)) {
+      val locationRequest = LocationRequest()
+      locationRequest.priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+      locationRequest.interval = 5000 // 5000ms (5s)
+      if (ActivityCompat.checkSelfPermission(this, ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+        // TODO: Consider calling
+        //    ActivityCompat#requestPermissions
+        // here to request the missing permissions, and then overriding
+        //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+        //                                          int[] grantResults)
+        // to handle the case where the user grants the permission. See the documentation
+        // for ActivityCompat#requestPermissions for more details.
+        return
+      }
+      fusedLocationProviderClient.requestLocationUpdates(locationRequest, locationCallback, Looper.getMainLooper())
+    } else {
+      // Do not have permissions, request them now
+      EasyPermissions.requestPermissions(
+              host = this,
+              rationale = "For showing your current location on the map.",
+              requestCode = REQUEST_CODE_FINE_LOCATION,
+              perms = *arrayOf(ACCESS_FINE_LOCATION)
+      )
+    }
+  }
+  var polylineOptions = PolylineOptions()
+  var prevLat = 0.0
+  var prevLong = 0.0
+  var distance = 0.0
+  fun addLocationToRoute(locations: List<Location>) {
+    mMap.clear()
+    val originalLatLngList = polylineOptions.points
+    val latLngList = locations.map {
+      LatLng(it.latitude, it.longitude)
+    }
+    originalLatLngList.addAll(latLngList)
+    mMap.addPolyline(polylineOptions)
+    val prevLocation = Location("previous")
+    locations.forEach{
+      val prev = Location("prev")
+      val cur = Location("cur")
+      prev.latitude = prevLat
+      prev.longitude = prevLong
+      cur.latitude = it.latitude
+      cur.longitude = it.longitude
+      distance += prev.distanceTo(cur)
+      prevLat = cur.latitude
+      prevLong = cur.longitude
+
+    }
+  }
+
+
 
 }
